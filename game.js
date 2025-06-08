@@ -3,27 +3,66 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 const gameOverElement = document.getElementById('gameOver');
 
-// Set canvas size
-canvas.width = 320;
-canvas.height = 480;
+// Set canvas size to window size
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+// Initial resize
+resizeCanvas();
+
+// Handle window resize
+window.addEventListener('resize', resizeCanvas);
 
 // Game variables
 const bird = {
-    x: 50,
+    x: canvas.width * 0.2,
     y: canvas.height / 2,
-    width: 34,
-    height: 24,
+    width: 60,
+    height: 45,
     gravity: 0.5,
     velocity: 0,
     jump: -8
 };
 
 const pipes = [];
-const pipeWidth = 52;
-const pipeGap = 150;
+const pipeWidth = 80;
+const pipeGap = canvas.height * 0.25;
 let score = 0;
 let gameOver = false;
 let frameCount = 0;
+
+// Cloud class
+class Cloud {
+    constructor() {
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height * 0.4);
+        this.width = 100 + Math.random() * 100;
+        this.height = 60 + Math.random() * 40;
+        this.speed = 0.2 + Math.random() * 0.3;
+    }
+
+    update() {
+        this.x -= this.speed;
+        if (this.x + this.width < 0) {
+            this.x = canvas.width;
+            this.y = Math.random() * (canvas.height * 0.4);
+        }
+    }
+
+    draw() {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(this.x + this.width * 0.2, this.y + this.height * 0.5, this.height * 0.4, 0, Math.PI * 2);
+        ctx.arc(this.x + this.width * 0.5, this.y + this.height * 0.3, this.height * 0.5, 0, Math.PI * 2);
+        ctx.arc(this.x + this.width * 0.8, this.y + this.height * 0.5, this.height * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Create clouds
+const clouds = Array(5).fill().map(() => new Cloud());
 
 // Event listeners
 document.addEventListener('keydown', (e) => {
@@ -38,7 +77,7 @@ document.addEventListener('keydown', (e) => {
 
 // Game functions
 function createPipe() {
-    const minHeight = 50;
+    const minHeight = canvas.height * 0.1;
     const maxHeight = canvas.height - pipeGap - minHeight;
     const height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
 
@@ -59,6 +98,44 @@ function resetGame() {
     frameCount = 0;
     scoreElement.textContent = `Score: ${score}`;
     gameOverElement.classList.add('hidden');
+}
+
+function drawBird() {
+    // Bird body
+    ctx.fillStyle = '#f8e71c';
+    ctx.beginPath();
+    ctx.ellipse(bird.x + bird.width * 0.5, bird.y + bird.height * 0.5, 
+                bird.width * 0.5, bird.height * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bird eye
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(bird.x + bird.width * 0.7, bird.y + bird.height * 0.3, 
+            bird.width * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bird pupil
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(bird.x + bird.width * 0.75, bird.y + bird.height * 0.3, 
+            bird.width * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bird beak
+    ctx.fillStyle = '#ff6b6b';
+    ctx.beginPath();
+    ctx.moveTo(bird.x + bird.width * 0.8, bird.y + bird.height * 0.4);
+    ctx.lineTo(bird.x + bird.width * 1.1, bird.y + bird.height * 0.5);
+    ctx.lineTo(bird.x + bird.width * 0.8, bird.y + bird.height * 0.6);
+    ctx.fill();
+
+    // Bird wing
+    ctx.fillStyle = '#f8e71c';
+    ctx.beginPath();
+    ctx.ellipse(bird.x + bird.width * 0.3, bird.y + bird.height * 0.6,
+                bird.width * 0.3, bird.height * 0.2, Math.PI * 0.3, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function update() {
@@ -104,6 +181,9 @@ function update() {
         }
     }
 
+    // Update clouds
+    clouds.forEach(cloud => cloud.update());
+
     frameCount++;
 }
 
@@ -112,9 +192,8 @@ function draw() {
     ctx.fillStyle = '#70c5ce';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw bird
-    ctx.fillStyle = '#f8e71c';
-    ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    // Draw clouds
+    clouds.forEach(cloud => cloud.draw());
 
     // Draw pipes
     ctx.fillStyle = '#73bf2e';
@@ -124,6 +203,9 @@ function draw() {
         // Bottom pipe
         ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
     });
+
+    // Draw bird
+    drawBird();
 }
 
 function gameLoop() {
